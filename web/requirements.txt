@@ -1,0 +1,3 @@
+# Installed on top of rag/requirements.txt, in the same environment.
+fastapi==0.162.2
+uvicorn==0.54.0

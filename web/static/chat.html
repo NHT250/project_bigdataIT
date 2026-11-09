@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TechPulse Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">TechPulse</a>
+    <nav aria-label="Pages">
+      <a href="/">Feed</a>
+      <a href="/chat" aria-current="page">Chat</a>
+      <a href="/search">Search</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Ask the archive</h1>
+    <p class="lede" id="reach">Answers come only from the collected papers and stories, with a numbered link to each source.</p>
+    <div class="thread" id="thread"></div>
+    <form class="ask" id="ask">
+      <label class="hidden-label" for="question">Your question</label>
+      <input id="question" type="text" maxlength="1000" autocomplete="off" required placeholder="What is new in graph neural networks?">
+      <button type="submit">Ask</button>
+    </form>
+  </main>
+
+  <footer>Summarization model fine-tuned by us (Qwen 2.5 1.5B, QLoRA). Chat uses a hosted LLM with retrieval.</footer>
+
+  <script src="/static/common.js"></script>
+  <script src="/static/chat.js"></script>
+</body>
+</html>

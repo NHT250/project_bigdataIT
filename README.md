@@ -6,8 +6,8 @@ A real-time tech news assistant built on papers from arXiv and stories from Hack
 |---|---|
 | Data collection (arXiv, Hacker News, PostgreSQL) | Done, runs continuously |
 | Fine-tuned summarizer (Qwen 2.5 1.5B, QLoRA) | Done, beats the baseline |
-| RAG question answering | Not built yet |
-| Website | Not built yet |
+| RAG question answering | Done, tested against the live Gemini API |
+| Website | Done, runs on port 8001 |
 
 ## How it works
 
@@ -109,6 +109,57 @@ The model is not in git. Training writes the LoRA adapter to `models/summarizer/
 
 Load it with plain `transformers` and `peft`, as `training/evaluate.py` does. Unsloth's fast inference path failed on the training machine with `CUBLAS_STATUS_EXECUTION_FAILED`.
 
+## Ask questions (RAG)
+
+The RAG code runs on the host, because it needs the GPU. It adds to the environment from "Train the summarizer":
+
+```bash
+uv pip install -r rag/requirements.txt
+```
+
+Put `GEMINI_API_KEY` in `.env`, then index the articles and ask. Both jobs only process what's new, so run them again to pick up newly collected articles.
+
+```bash
+PYTHONPATH=. "$VIRTUAL_ENV/Scripts/python.exe" -m rag.index embed
+```
+
+```bash
+PYTHONPATH=. "$VIRTUAL_ENV/Scripts/python.exe" -m rag.index summarize
+```
+
+```bash
+PYTHONPATH=. "$VIRTUAL_ENV/Scripts/python.exe" -m rag.ask "What is new in graph neural networks?"
+```
+
+- Articles are split into 500-token chunks with a 50-token overlap and embedded with all-MiniLM-L6-v2. Search takes the 5 closest chunks by cosine similarity in pgvector.
+- Gemini answers only from those chunks and cites them as `[n]`. An answer with no citations or a citation to a source that doesn't exist is rejected instead of shown.
+- The default model is `gemini-3.6-flash`, because `gemini-2.0-flash` has been shut down. Set `GEMINI_MODEL` to use another one.
+- A 429 from the API is retried up to 5 times, waiting as long as the API asks or backing off exponentially from 2 seconds, with no wait longer than 60 seconds.
+- On Gemini's free tier, Google may use what is sent to improve its products. Here that is the question and the retrieved article text.
+- Hacker News stories are indexed by title only, and only arXiv papers get a model summary, because the summarizer was trained on paper abstracts.
+- The summarize job can stop with CUDA errors on the RTX 4050 laptop GPU, and the NVIDIA driver logged errors during those crashes. Finished summaries are saved, so running the job again continues from where it stopped.
+- If the GPU fails while embedding, the embedder reloads on the CPU and carries on.
+
+## Website
+
+FastAPI serves three plain HTML and JavaScript pages, with no build step. It runs on the host, next to the RAG code:
+
+```bash
+uv pip install -r web/requirements.txt
+```
+
+```bash
+"$VIRTUAL_ENV/Scripts/python.exe" -m uvicorn web.app:app --host 127.0.0.1 --port 8001
+```
+
+Then open http://127.0.0.1:8001.
+
+- **Feed** shows the newest papers and stories with their summaries, can be filtered by source, and polls every 10 seconds. With both sources selected they take turns, because arXiv publishes in batches and would otherwise be pushed out by Hacker News.
+- **Chat** answers from the archive with numbered links and shows how many articles it searched.
+- **Search** finds articles by keyword with PostgreSQL full-text search.
+
+The collector adds new articles every 5 minutes and they appear in Feed and Search straight away. Chat and the summaries only include them after the two `rag.index` jobs have run again.
+
 ## Limitations
 
 1. The model was trained on SciTLDR, not on the articles collected here. This is transfer learning: it learns to summarize from a public dataset and is then applied to collected papers.
@@ -128,4 +179,16 @@ Training tests:
 
 ```bash
 PYTHONPATH=training "$HOME/.venvs/techpulse/Scripts/python.exe" -m pytest -q -p no:cacheprovider training/tests
+```
+
+RAG tests, which need the PostgreSQL container running:
+
+```bash
+PYTHONPATH=. "$HOME/.venvs/techpulse/Scripts/python.exe" -m pytest -q -p no:cacheprovider rag/tests
+```
+
+Website tests, which also need the PostgreSQL container running:
+
+```bash
+PYTHONPATH=. "$HOME/.venvs/techpulse/Scripts/python.exe" -m pytest -q -p no:cacheprovider web/tests
 ```

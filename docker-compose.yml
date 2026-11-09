@@ -4,7 +4,7 @@ name: techpulse
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:0.8.1-pg16
     restart: unless-stopped
     command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=20"]
     environment:

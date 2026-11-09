@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TechPulse Search</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">TechPulse</a>
+    <nav aria-label="Pages">
+      <a href="/">Feed</a>
+      <a href="/chat">Chat</a>
+      <a href="/search" aria-current="page">Search</a>
+    </nav>
+  </header>
+
+  <main>
+    <h1>Search articles</h1>
+    <form class="ask" id="search">
+      <label class="hidden-label" for="q">Keywords</label>
+      <input id="q" type="search" maxlength="200" autocomplete="off" required placeholder="Try quantum, robotics or Rust">
+      <button type="submit">Search</button>
+    </form>
+    <p class="status" id="status" role="status"></p>
+    <div class="list" id="results"></div>
+  </main>
+
+  <footer>Summarization model fine-tuned by us (Qwen 2.5 1.5B, QLoRA). Chat uses a hosted LLM with retrieval.</footer>
+
+  <script src="/static/common.js"></script>
+  <script src="/static/search.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TechPulse Feed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap">
+  <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+  <header class="top">
+    <a class="mark" href="/">TechPulse</a>
+    <nav aria-label="Pages">
+      <a href="/" aria-current="page">Feed</a>
+      <a href="/chat">Chat</a>
+      <a href="/search">Search</a>
+    </nav>
+  </header>
+
+  <section class="pulse" aria-labelledby="pulse-title">
+    <h2 id="pulse-title">Articles published per day, last 14 days</h2>
+    <div class="pulse-chart"><canvas id="pulse" role="img" aria-label="Bar chart of articles published per day by source. The same numbers are in the table below the chart."></canvas></div>
+    <details class="pulse-table">
+      <summary>View as table</summary>
+      <table>
+        <thead><tr><th scope="col">Day</th><th scope="col">arXiv</th><th scope="col">Hacker News</th></tr></thead>
+        <tbody id="pulse-rows"></tbody>
+      </table>
+    </details>
+  </section>
+
+  <main>
+    <div class="controls">
+      <div class="filter" role="group" aria-label="Filter by source">
+        <button type="button" data-source="all" aria-pressed="true">All</button>
+        <button type="button" data-source="arxiv" aria-pressed="false">arXiv</button>
+        <button type="button" data-source="hn" aria-pressed="false">Hacker News</button>
+      </div>
+      <p class="status" id="status" role="status">Loading articles</p>
+    </div>
+    <div class="list" id="feed"></div>
+  </main>
+
+  <footer>Summarization model fine-tuned by us (Qwen 2.5 1.5B, QLoRA). Chat uses a hosted LLM with retrieval.</footer>
+
+  <script src="/static/common.js"></script>
+  <script src="/static/feed.js"></script>
+</body>
+</html>
