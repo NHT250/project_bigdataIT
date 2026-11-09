@@ -1,0 +1,7 @@
+# Everything the website and indexing jobs need in Docker. Torch is installed first in Dockerfile.api.
+-r rag/requirements.txt
+-r web/requirements.txt
+transformers==5.17.0
+peft==0.21.2
+bitsandbytes==0.50.2
+accelerate==1.15.0

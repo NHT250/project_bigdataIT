@@ -1,0 +1,11 @@
+# Add with -f on machines with an NVIDIA GPU so the indexer can write summaries.
+services:
+  indexer:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    mem_limit: 6g

@@ -2,3 +2,11 @@
 .env
 __pycache__
 .pytest_cache
+data
+models
+backup
+dist
+.venv
+rag/tests
+web/tests
+training/results

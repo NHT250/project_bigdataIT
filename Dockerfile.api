@@ -1,0 +1,26 @@
+# One image for the website and the indexing jobs. The CUDA build of torch
+# also runs on machines without a GPU, where summaries are skipped.
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 HF_HOME=/opt/huggingface
+WORKDIR /app
+
+COPY requirements-api.txt ./
+COPY rag/requirements.txt ./rag/
+COPY web/requirements.txt ./web/
+RUN pip install --no-cache-dir --retries 10 --timeout 120 torch==2.14.1 --index-url https://download.pytorch.org/whl/cu130
+RUN pip install --no-cache-dir --retries 10 --timeout 120 -r requirements-api.txt
+
+# Bake in the small embedding model so Chat doesn't depend on Hugging Face at run time.
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
+
+COPY techpulse ./techpulse
+COPY rag ./rag
+COPY web ./web
+COPY training/prepare.py training/prompts.py ./training/
+
+RUN useradd --create-home techpulse && chown -R techpulse /opt/huggingface
+USER techpulse
+
+EXPOSE 8001
+CMD ["sh", "-c", "python -m rag.index init && exec python -W ignore::SyntaxWarning -m uvicorn web.app:app --host 0.0.0.0 --port 8001"]

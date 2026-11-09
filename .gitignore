@@ -9,3 +9,7 @@ models/
 unsloth_compiled_cache/
 # Holds SciTLDR reference text; the scores are in test_metrics.json.
 training/results/*.jsonl
+# Dumps of the database.
+backup/
+# Files for download, kept out of the main branch.
+dist/

@@ -6,6 +6,7 @@ import psycopg
 
 from rag import settings, store
 from rag.chunking import chunk_text
+from techpulse import store as article_store
 
 log = logging.getLogger("rag.index")
 SUMMARY_MODEL_NAME = "qwen2.5-1.5b-qlora-scitldr"
@@ -38,20 +39,45 @@ def summarize_pending(conn, summarize, batch_size=16):
     return done
 
 
+def prepare_schema(conn):
+    article_store.init_schema(conn)
+    store.init_schema(conn)
+
+
+def _summarizer_problem():
+    """Why this machine can't summarize, or None if it can."""
+    import torch
+
+    if not torch.cuda.is_available():
+        return "no NVIDIA GPU is available"
+    if not (settings.ROOT / "models" / "summarizer" / "adapter_config.json").exists():
+        return "the model is not in models/summarizer"
+    return None
+
+
+def summarize_if_possible(conn):
+    problem = _summarizer_problem()
+    if problem:
+        log.warning("Skipping summaries: %s", problem)
+        return 0
+    from rag.summarizer import Summarizer
+
+    return summarize_pending(conn, Summarizer())
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("job", choices=["embed", "summarize"])
+    parser.add_argument("job", choices=["init", "embed", "summarize"])
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
     with psycopg.connect(settings.database_url(), autocommit=True) as conn:
-        store.init_schema(conn)
+        prepare_schema(conn)
         if args.job == "embed":
             from rag.embedder import Embedder
             print("embedded articles:", embed_pending(conn, Embedder()))
-        else:
-            from rag.summarizer import Summarizer
-            print("summarized papers:", summarize_pending(conn, Summarizer()))
+        elif args.job == "summarize":
+            print("summarized papers:", summarize_if_possible(conn))
 
 
 if __name__ == "__main__":

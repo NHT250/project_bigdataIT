@@ -20,5 +20,7 @@ def get(name, default=""):
 
 
 def database_url():
+    if get("DATABASE_URL"):
+        return get("DATABASE_URL")
     password = quote(get("POSTGRES_PASSWORD"), safe="")
     return f"postgresql://techpulse:{password}@127.0.0.1:5433/techpulse"

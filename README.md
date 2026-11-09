@@ -160,6 +160,74 @@ Then open http://127.0.0.1:8001.
 
 The collector adds new articles every 5 minutes and they appear in Feed and Search straight away. Chat and the summaries only include them after the two `rag.index` jobs have run again.
 
+## Chạy trên máy khác (Run on another machine)
+
+Needs Docker with Compose. The images come from Docker Hub, so nothing is built locally. In Git Bash or any Linux or macOS shell, make an empty folder and run these from inside it.
+
+**1. Download the Compose file and the settings template.**
+
+```bash
+curl -fLO https://raw.githubusercontent.com/NHT250/project_bigdataIT/main/docker-compose.prod.yml
+```
+
+```bash
+curl -fL -o .env https://raw.githubusercontent.com/NHT250/project_bigdataIT/main/.env.example
+```
+
+**2. Fill in `.env`.** Set `GEMINI_API_KEY` (free from [Google AI Studio](https://aistudio.google.com/apikey)), `CONTACT_EMAIL`, and `POSTGRES_PASSWORD`. Use only letters and digits in the password, because it goes into a connection URL.
+
+**3. Download the model.** It is not in the Docker images. Feed, Search and Chat work without it, so skip this step on a machine with no NVIDIA GPU.
+
+```bash
+mkdir -p models/summarizer
+```
+
+```bash
+curl -fL -o model.zip https://github.com/NHT250/project_bigdataIT/raw/model-files/techpulse-summarizer.zip
+```
+
+```bash
+unzip -o model.zip -d models/summarizer
+```
+
+**4. Start it.** The first run downloads about 7 GB of images when unpacked.
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+**5. Restore the collected articles (optional).** Without this, the database starts empty and fills up as new articles arrive.
+
+```bash
+curl -fL -o techpulse.dump https://github.com/NHT250/project_bigdataIT/raw/model-files/techpulse.dump
+```
+
+```bash
+docker compose -f docker-compose.prod.yml stop ingest api indexer
+```
+
+```bash
+docker compose -f docker-compose.prod.yml exec -T postgres pg_restore -U techpulse -d techpulse --clean --if-exists --no-owner --exit-on-error < techpulse.dump
+```
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
+**6. Open http://localhost:8001.** The site answers about 30 seconds after the containers start.
+
+### Notes
+
+- The `indexer` service embeds new articles for Chat every 5 minutes, then writes summaries. Without an NVIDIA GPU or the model it logs `Skipping summaries` and carries on, so new papers appear without a summary.
+- To write summaries on a machine with an NVIDIA GPU and the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), start with both files. The first summary also downloads the 4-bit Qwen base model, about 1 GB, from Hugging Face. Inside Docker this has only been checked as far as the container seeing the GPU.
+
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.prod.gpu.yml up -d
+```
+
+- From a clone of this repository, `make dump` and `make restore` save and load `backup/techpulse.dump`. Without `make`, run `sh scripts/dump.sh` and `sh scripts/restore.sh`.
+- Run only one copy of the collector per network, so arXiv still gets at most one request every 3 seconds.
+
 ## Limitations
 
 1. The model was trained on SciTLDR, not on the articles collected here. This is transfer learning: it learns to summarize from a public dataset and is then applied to collected papers.
