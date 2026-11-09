@@ -1,0 +1,11 @@
+.env
+__pycache__/
+.pytest_cache/
+*.pyc
+data/
+.venv/
+models/
+# Code Unsloth generates at run time.
+unsloth_compiled_cache/
+# Holds SciTLDR reference text; the scores are in test_metrics.json.
+training/results/*.jsonl
