@@ -9,16 +9,35 @@ import psycopg
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, StringConstraints
+from pydantic import BaseModel, Field, StringConstraints
 
 from rag import answering, ask as rag_ask, settings
 from web import queries
 
 STATIC = Path(__file__).parent / "static"
 
+QuestionText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
+
+
+class CitedSource(BaseModel):
+    number: Annotated[int, Field(ge=1, le=100)]
+    title: Annotated[str, StringConstraints(max_length=1000)]
+
+
+class EarlierTurn(BaseModel):
+    question: QuestionText
+    answer: Annotated[str, StringConstraints(max_length=8000)]
+    sources: Annotated[list[CitedSource], Field(max_length=20)] = []
+
+    def to_turn(self):
+        return answering.Turn(
+            self.question, self.answer, [answering.CitedSource(s.number, s.title) for s in self.sources]
+        )
+
 
 class Question(BaseModel):
-    question: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)]
+    question: QuestionText
+    history: Annotated[list[EarlierTurn], Field(max_length=10)] = []
 
 
 def create_app(connect, ask, warm_up=None):
@@ -64,7 +83,7 @@ def create_app(connect, ask, warm_up=None):
     @app.post("/api/chat")
     def chat(body: Question):
         try:
-            return asdict(ask(body.question))
+            return asdict(ask(body.question, [turn.to_turn() for turn in body.history]))
         except answering.MissingApiKey as error:
             raise HTTPException(503, str(error)) from error
         except answering.AnswerError as error:
@@ -94,10 +113,10 @@ def _shared_embedder():
         return _embedder
 
 
-def _ask(question):
+def _ask(question, history):
     api_key = settings.get("GEMINI_API_KEY")
     answering.require_api_key(api_key)
-    return rag_ask.run(question, api_key, embedder=_shared_embedder())
+    return rag_ask.run(question, api_key, embedder=_shared_embedder(), history=history)
 
 
 app = create_app(connect=_connect, ask=_ask, warm_up=_shared_embedder)

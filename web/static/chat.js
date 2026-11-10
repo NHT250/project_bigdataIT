@@ -2,10 +2,31 @@ const thread = document.getElementById("thread");
 const form = document.getElementById("ask");
 const input = document.getElementById("question");
 const askButton = form.querySelector("button");
+const resetButton = document.getElementById("new-conversation");
 
 const INLINE = /(\*\*[^*]+\*\*|\[\s*\d+(?:\s*,\s*\d+)*\s*\])/;
+// The server only reads the last few turns, so sending more is wasted bandwidth.
+const HISTORY_TURNS = 3;
 
 let archiveSize = null;
+let history = [];
+
+function remember(question, result) {
+  history.push({
+    question,
+    answer: result.text,
+    sources: result.sources.map((source) => ({ number: source.number, title: source.title })),
+  });
+  history = history.slice(-HISTORY_TURNS);
+  resetButton.hidden = false;
+}
+
+resetButton.addEventListener("click", () => {
+  history = [];
+  thread.replaceChildren();
+  resetButton.hidden = true;
+  input.focus();
+});
 
 function citation(group, sources) {
   const numbers = group.slice(1, -1).split(",").map((n) => Number(n.trim()));
@@ -92,9 +113,12 @@ form.addEventListener("submit", async (event) => {
     const result = await fetchJson("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, history }),
     });
-    reach.textContent = `Searched ${plural(result.searched_articles)}`;
+    const rewritten = result.searched_for && result.searched_for !== question;
+    reach.textContent = `Searched ${plural(result.searched_articles)}` +
+      (rewritten ? ` for “${result.searched_for}”` : "");
+    remember(question, result);
     turn.append(answerNode(result.text, result.sources));
     const sources = sourceList(result.sources);
     if (sources) turn.append(sources);

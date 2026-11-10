@@ -133,6 +133,7 @@ PYTHONPATH=. "$VIRTUAL_ENV/Scripts/python.exe" -m rag.ask "What is new in graph 
 
 - Articles are split into 500-token chunks with a 50-token overlap and embedded with all-MiniLM-L6-v2. Search takes the 5 closest chunks by cosine similarity in pgvector.
 - Gemini answers only from those chunks and cites them as `[n]`. An answer with no citations or a citation to a source that doesn't exist is rejected instead of shown.
+- On the website, follow-up questions can refer to the last three answers. Gemini first rewrites a follow-up such as "Explain the first one" into a question that stands on its own, then the search and the answer use that question. This costs a second Gemini request per follow-up. The command line answers each question on its own.
 - The default model is `gemini-3.6-flash`, because `gemini-2.0-flash` has been shut down. Set `GEMINI_MODEL` to use another one.
 - A 429 from the API is retried up to 5 times, waiting as long as the API asks or backing off exponentially from 2 seconds, with no wait longer than 60 seconds.
 - On Gemini's free tier, Google may use what is sent to improve its products. Here that is the question and the retrieved article text.
@@ -155,7 +156,7 @@ uv pip install -r web/requirements.txt
 Then open http://127.0.0.1:8001.
 
 - **Feed** shows the newest papers and stories with their summaries, can be filtered by source, and polls every 10 seconds. With both sources selected they take turns, because arXiv publishes in batches and would otherwise be pushed out by Hacker News.
-- **Chat** answers from the archive with numbered links and shows how many articles it searched.
+- **Chat** answers from the archive with numbered links and shows how many articles it searched. When a follow-up is rewritten, it also shows the question it searched for. **New conversation** clears the earlier turns.
 - **Search** finds articles by keyword with PostgreSQL full-text search.
 
 The collector adds new articles every 5 minutes and they appear in Feed and Search straight away. Chat and the summaries only include them after the two `rag.index` jobs have run again.

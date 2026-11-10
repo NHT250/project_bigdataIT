@@ -183,6 +183,21 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 .ask button:disabled { opacity: 0.55; cursor: progress; }
 
+.follow-up-note { margin: -0.5rem 0 0; color: var(--ink-soft); font-size: 0.875rem; }
+
+.link-button {
+  margin-left: 0.5rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link-button[hidden] { display: none; }
+
 .hidden-label {
   position: absolute;
   width: 1px;

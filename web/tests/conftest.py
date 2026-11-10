@@ -41,12 +41,14 @@ def add_article(conn):
 class FakeAssistant:
     def __init__(self):
         self.questions = []
+        self.histories = []
         self.outcome = answering.Answer("answered", "It works [1].", 7, [
             answering.Source(1, "Paper", "https://arxiv.org/abs/1", "A summary", "arxiv"),
         ])
 
-    def __call__(self, question):
+    def __call__(self, question, history):
         self.questions.append(question)
+        self.histories.append(history)
         if isinstance(self.outcome, Exception):
             raise self.outcome
         return self.outcome

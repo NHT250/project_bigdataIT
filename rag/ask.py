@@ -7,7 +7,7 @@ from rag import answering, settings
 TOP_K = 5
 
 
-def run(question, api_key, embedder=None):
+def run(question, api_key, embedder=None, history=()):
     """Heavy imports stay here so a missing key is reported immediately."""
     import psycopg
     from google import genai
@@ -27,6 +27,7 @@ def run(question, api_key, embedder=None):
             generate=generate,
             searched_articles=store.indexed_article_count(conn),
             api_key=api_key,
+            history=history,
         )
 
 
