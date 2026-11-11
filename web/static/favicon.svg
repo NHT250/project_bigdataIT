@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- TechPulse mark: a pulse line on a night-blue tile. The spike is the news breaking. -->
+  <rect x="1.5" y="1.5" width="45" height="45" rx="12" fill="#0d1024" stroke="#22d3ee" stroke-width="2"/>
+  <path d="M8 27h8l3.5-10 6 20 4.5-14 2.5 4H40" fill="none" stroke="#22d3ee" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="40" cy="27" r="3.2" fill="#f43f8e"/>
+</svg>

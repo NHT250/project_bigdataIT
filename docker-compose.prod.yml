@@ -40,6 +40,9 @@ services:
       DATABASE_URL: postgresql://techpulse:${POSTGRES_PASSWORD}@postgres:5432/techpulse
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-}
+      LLM_PROVIDER: ${LLM_PROVIDER:-}
       HF_HUB_OFFLINE: "1"
     ports:
       - "127.0.0.1:${API_PORT:-8001}:8001"

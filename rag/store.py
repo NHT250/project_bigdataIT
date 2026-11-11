@@ -2,9 +2,12 @@
 from psycopg.rows import dict_row
 
 EMBEDDING_DIMENSIONS = 384
+# Splits a letter from a number joined to it ("QWen2.5" -> "QWen 2.5"). Documents and questions
+# both go through it, so either spelling finds the other. Immutable, so a generated column can use it.
+SPLIT_LETTERS_FROM_NUMBERS = r"regexp_replace({}, '([[:alpha:]])([[:digit:]])', '\1 \2', 'g')"
 CURRENT_MD5 = "md5(a.title || E'\\n' || coalesce(a.content, ''))"
 
-SCHEMA = f"""
+SCHEMA = """
 CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE IF NOT EXISTS article_chunks (
@@ -12,7 +15,7 @@ CREATE TABLE IF NOT EXISTS article_chunks (
     source_id   TEXT NOT NULL,
     chunk_index INT NOT NULL,
     text        TEXT NOT NULL,
-    embedding   vector({EMBEDDING_DIMENSIONS}) NOT NULL,
+    embedding   vector({dimensions}) NOT NULL,
     content_md5 TEXT NOT NULL,
     PRIMARY KEY (source, source_id, chunk_index),
     FOREIGN KEY (source, source_id) REFERENCES articles (source, source_id) ON DELETE CASCADE
@@ -20,6 +23,17 @@ CREATE TABLE IF NOT EXISTS article_chunks (
 
 CREATE INDEX IF NOT EXISTS article_chunks_embedding
     ON article_chunks USING hnsw (embedding vector_cosine_ops);
+
+-- The keyword side of hybrid retrieval: title weighted above body, kept up to date by
+-- PostgreSQL itself whenever the collector writes an article. A letter joined to a number is
+-- split off first, so "QWen2.5" and "Qwen 2.5" index alike. The body is capped so a huge page
+-- can't exceed the 1 MB tsvector limit.
+ALTER TABLE articles ADD COLUMN IF NOT EXISTS search_document tsvector GENERATED ALWAYS AS (
+    setweight(to_tsvector('english'::regconfig, {split_title}), 'A')
+    || setweight(to_tsvector('english'::regconfig, {split_content}), 'D')
+) STORED;
+
+CREATE INDEX IF NOT EXISTS articles_search_document ON articles USING gin (search_document);
 
 CREATE TABLE IF NOT EXISTS article_summaries (
     source      TEXT NOT NULL,
@@ -34,7 +48,25 @@ CREATE TABLE IF NOT EXISTS article_summaries (
 """
 
 
+SCHEMA = SCHEMA.format(
+    dimensions=EMBEDDING_DIMENSIONS,
+    split_title=SPLIT_LETTERS_FROM_NUMBERS.format("title"),
+    split_content=SPLIT_LETTERS_FROM_NUMBERS.format("left(coalesce(content, ''), 300000)"),
+)
+
+
+def _drop_outdated_search_column(conn):
+    """A search column made before letters and numbers were split is rebuilt with the new rule."""
+    row = conn.execute("""
+        SELECT generation_expression FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = 'articles' AND column_name = 'search_document'
+    """).fetchone()
+    if row and "regexp_replace" not in (row[0] or ""):
+        conn.execute("ALTER TABLE articles DROP COLUMN search_document")
+
+
 def init_schema(conn):
+    _drop_outdated_search_column(conn)
     conn.execute(SCHEMA)
 
 

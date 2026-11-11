@@ -2,31 +2,68 @@
 import argparse
 import sys
 
-from rag import answering, settings
+from rag import answering, providers, retrieval, settings, suggestions
 
 TOP_K = 5
 
 
-def run(question, api_key, embedder=None, history=()):
+def retrieval_mode(get):
+    """hybrid (default), dense or bm25: see rag.retrieval."""
+    mode = (get("RETRIEVAL_MODE") or "hybrid").strip().lower()
+    if mode not in retrieval.MODES:
+        raise ValueError(f'RETRIEVAL_MODE must be one of {", ".join(retrieval.MODES)}, not "{mode}".')
+    return mode
+
+
+def _retriever(conn, embedder):
+    mode = retrieval_mode(settings.get)
+    return lambda q: retrieval.retrieve(conn, q, embedder.encode([q])[0], mode, TOP_K)
+
+
+# answering.answer checks that a key is set; build_generator has already made sure of it.
+KEY_CHECKED = "checked by providers.build_generator"
+
+
+def run(question, generator=None, embedder=None, history=()):
     """Heavy imports stay here so a missing key is reported immediately."""
     import psycopg
-    from google import genai
 
     from rag import store
     from rag.embedder import Embedder
 
+    generator = generator or providers.build_generator(settings.get)
     embedder = embedder or Embedder()
-    generate = answering.GeminiGenerator(
-        genai.Client(api_key=api_key),
-        model=settings.get("GEMINI_MODEL", answering.DEFAULT_MODEL),
-    )
     with psycopg.connect(settings.database_url(), autocommit=True) as conn:
         return answering.answer(
             question,
-            retrieve=lambda q: store.search(conn, embedder.encode([q])[0], TOP_K),
-            generate=generate,
+            retrieve=_retriever(conn, embedder),
+            generate=generator,
             searched_articles=store.indexed_article_count(conn),
-            api_key=api_key,
+            api_key=KEY_CHECKED,
+            history=history,
+        )
+
+
+# Shared by every question the website answers, so a question asked again isn't sent twice.
+SUGGESTION_CACHE = suggestions.Cache()
+
+
+def run_stream(question, generator, embedder, history=()):
+    """The events of answering.answer_events, with the database open until the last one."""
+    import psycopg
+
+    from rag import store
+
+    with psycopg.connect(settings.database_url(), autocommit=True) as conn:
+        retrieve = _retriever(conn, embedder)
+        yield from answering.answer_events(
+            question,
+            retrieve=retrieve,
+            generate=generator,
+            stream=generator.stream,
+            suggest=suggestions.Suggester(generator, retrieve, cache=SUGGESTION_CACHE),
+            searched_articles=store.indexed_article_count(conn),
+            api_key=KEY_CHECKED,
             history=history,
         )
 
@@ -38,9 +75,7 @@ def main(argv=None):
     sys.stdout.reconfigure(encoding="utf-8")
 
     try:
-        api_key = settings.get("GEMINI_API_KEY")
-        answering.require_api_key(api_key)
-        result = run(args.question, api_key)
+        result = run(args.question, providers.build_generator(settings.get))
     except (answering.MissingApiKey, answering.AnswerError) as error:
         print(f"Error: {error}", file=sys.stderr)
         return 2

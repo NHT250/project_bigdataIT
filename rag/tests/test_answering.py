@@ -252,3 +252,29 @@ def test_other_api_failures_are_not_retried():
     with pytest.raises(answering.AnswerError):
         generator("s", "u")
     assert (len(models.calls), waits) == (1, [])
+
+
+def quota_exhausted(quota_id, retry_delay="55274s"):
+    details = [
+        {"@type": "type.googleapis.com/google.rpc.QuotaFailure",
+         "violations": [{"quotaMetric": "generativelanguage.googleapis.com/generate_content_free_tier_requests",
+                         "quotaId": quota_id, "quotaValue": "20"}]},
+        {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": retry_delay},
+    ]
+    return api_error(429, "You exceeded your current quota", "RESOURCE_EXHAUSTED", details)
+
+
+def test_daily_quota_used_up_is_reported_at_once_without_waiting():
+    generator, models, waits = gemini(
+        quota_exhausted("GenerateRequestsPerDayPerProjectPerModel-FreeTier"), response("x"))
+    with pytest.raises(answering.AnswerError, match="daily") as raised:
+        generator("s", "u")
+    assert (len(models.calls), waits) == (1, [])
+    assert "gemini-test" in str(raised.value) and "GEMINI_MODEL" in str(raised.value)
+
+
+def test_per_minute_quota_is_still_retried():
+    generator, models, waits = gemini(
+        quota_exhausted("GenerateRequestsPerMinutePerProjectPerModel-FreeTier", "20s"), response("Hello [1]."))
+    assert generator("s", "u") == "Hello [1]."
+    assert (len(models.calls), waits) == (2, [20.0])

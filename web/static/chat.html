@@ -7,11 +7,26 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap">
-  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/app.css?v=chat5">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <script>
+    // Apply a saved light/dark choice before the page paints. Storage may be blocked.
+    try {
+      const theme = JSON.parse(localStorage.getItem("techpulse.theme"));
+      if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+    } catch {}
+  </script>
 </head>
-<body>
+<body class="chat-page">
   <header class="top">
-    <a class="mark" href="/">TechPulse</a>
+    <a class="mark" href="/" aria-label="TechPulse, go to Feed">
+      <svg class="mark-icon" viewBox="0 0 48 48" aria-hidden="true">
+        <rect class="mark-tile" x="1.5" y="1.5" width="45" height="45" rx="12"/>
+        <path class="mark-pulse" d="M8 27h8l3.5-10 6 20 4.5-14 2.5 4H40"/>
+        <circle class="mark-dot" cx="40" cy="27" r="3.2"/>
+      </svg>
+      <span class="mark-word">Tech<span class="mark-pulse-word">Pulse</span></span>
+    </a>
     <nav aria-label="Pages">
       <a href="/">Feed</a>
       <a href="/chat" aria-current="page">Chat</a>
@@ -19,21 +34,42 @@
     </nav>
   </header>
 
-  <main>
-    <h1>Ask the archive</h1>
-    <p class="lede" id="reach">Answers come only from the collected papers and stories, with a numbered link to each source.</p>
-    <div class="thread" id="thread"></div>
-    <form class="ask" id="ask">
-      <label class="hidden-label" for="question">Your question</label>
-      <input id="question" type="text" maxlength="1000" autocomplete="off" required placeholder="What is new in graph neural networks?">
-      <button type="submit">Ask</button>
-    </form>
-    <p class="follow-up-note">Follow-up questions can refer to the last three answers. <button type="button" class="link-button" id="new-conversation" hidden>New conversation</button></p>
+  <main class="chat">
+    <div class="chat-head">
+      <div>
+        <h1>Ask the archive</h1>
+        <p class="lede" id="reach">Answers come only from the collected papers and stories, with a numbered link to each source.</p>
+      </div>
+      <button type="button" class="new-chat" id="new-chat">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        New chat
+      </button>
+    </div>
+
+    <div class="welcome" id="welcome">
+      <p>Try one of these, then ask a follow-up such as “tell me more about the second one”.</p>
+      <div class="suggestions">
+        <button type="button">What is new in graph neural networks?</button>
+        <button type="button">How can I pause an n8n workflow until a customer answers?</button>
+        <button type="button">What are people saying about AI coding agents?</button>
+      </div>
+    </div>
+
+    <div class="thread" id="thread" aria-live="polite"></div>
+
+    <div class="dock">
+      <form class="ask" id="ask">
+        <label class="hidden-label" for="question">Your question</label>
+        <input id="question" type="text" maxlength="1000" autocomplete="off" required placeholder="Ask about papers, stories and articles…">
+        <button type="submit">Ask</button>
+      </form>
+      <p class="follow-up-note">Follow-ups can refer to the last three answers.</p>
+    </div>
   </main>
 
   <footer>Summarization model fine-tuned by us (Qwen 2.5 1.5B, QLoRA). Chat uses a hosted LLM with retrieval.</footer>
 
   <script src="/static/common.js"></script>
-  <script src="/static/chat.js"></script>
+  <script src="/static/chat.js?v=chat5"></script>
 </body>
 </html>

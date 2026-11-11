@@ -75,4 +75,4 @@ def test_prepare_schema_builds_every_table_on_an_empty_database():
             ).fetchall()
         finally:
             connection.execute(f'DROP SCHEMA "{schema}" CASCADE')
-    assert {name for (name,) in tables} == {"articles", "article_chunks", "article_summaries"}
+    assert {name for (name,) in tables} == {"articles", "hn_content", "article_chunks", "article_summaries"}

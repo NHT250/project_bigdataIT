@@ -8,10 +8,25 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Literata:opsz,wght@7..72,400;7..72,500&display=swap">
   <link rel="stylesheet" href="/static/app.css">
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <script>
+    // Apply a saved light/dark choice before the page paints. Storage may be blocked.
+    try {
+      const theme = JSON.parse(localStorage.getItem("techpulse.theme"));
+      if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+    } catch {}
+  </script>
 </head>
 <body>
   <header class="top">
-    <a class="mark" href="/">TechPulse</a>
+    <a class="mark" href="/" aria-label="TechPulse, go to Feed">
+      <svg class="mark-icon" viewBox="0 0 48 48" aria-hidden="true">
+        <rect class="mark-tile" x="1.5" y="1.5" width="45" height="45" rx="12"/>
+        <path class="mark-pulse" d="M8 27h8l3.5-10 6 20 4.5-14 2.5 4H40"/>
+        <circle class="mark-dot" cx="40" cy="27" r="3.2"/>
+      </svg>
+      <span class="mark-word">Tech<span class="mark-pulse-word">Pulse</span></span>
+    </a>
     <nav aria-label="Pages">
       <a href="/">Feed</a>
       <a href="/chat">Chat</a>

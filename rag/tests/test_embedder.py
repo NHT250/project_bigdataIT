@@ -12,10 +12,11 @@ CUDA_ERROR = torch.AcceleratorError("CUDA error: out of memory")
 class FakeModels:
     """Stands in for SentenceTransformer and records which devices were loaded."""
 
-    def __init__(self, monkeypatch, gpu=True, load_fails_on=(), encode_fails_on=()):
+    def __init__(self, monkeypatch, gpu=True, load_fails_on=(), encode_fails_on=(), nan_on=None):
         self.devices = []
         self.load_fails_on = load_fails_on
         self.encode_fails_on = encode_fails_on
+        self.nan_on = nan_on or {}
         monkeypatch.setattr(torch.cuda, "is_available", lambda: gpu)
         monkeypatch.setattr(embedder_module, "SentenceTransformer", self.load)
 
@@ -23,20 +24,21 @@ class FakeModels:
         self.devices.append(device)
         if device in self.load_fails_on:
             raise CUDA_ERROR
-        return FakeModel(device, self.encode_fails_on)
+        return FakeModel(device, self.encode_fails_on, self.nan_on.get(device, ()))
 
 
 class FakeModel:
-    def __init__(self, device, encode_fails_on):
+    def __init__(self, device, encode_fails_on, nan_texts=()):
         self.device = device
         self.encode_fails_on = encode_fails_on
+        self.nan_texts = nan_texts
         self.max_seq_length = 256
         self.tokenizer = f"tokenizer on {device}"
 
     def encode(self, texts, **kwargs):
         if self.device in self.encode_fails_on:
             raise CUDA_ERROR
-        return np.array([[1.0, 0.0] for _ in texts])
+        return np.array([[np.nan, np.nan] if t in self.nan_texts else [1.0, 0.0] for t in texts])
 
 
 def test_healthy_gpu_is_used(monkeypatch):
@@ -88,3 +90,28 @@ def test_load_failure_on_the_cpu_is_not_hidden(monkeypatch):
     FakeModels(monkeypatch, load_fails_on=("cuda", "cpu"))
     with pytest.raises(RuntimeError, match="out of memory"):
         Embedder()
+
+
+# NaN from the GPU: pgvector refuses it and the whole batch fails
+
+
+def test_a_nan_vector_from_the_gpu_is_computed_again_on_the_cpu(monkeypatch):
+    models = FakeModels(monkeypatch, nan_on={"cuda": {"bad"}})
+    embedder = Embedder()
+    assert embedder.encode(["good", "bad", "fine"]) == [[1.0, 0.0], [1.0, 0.0], [1.0, 0.0]]
+    assert models.devices == ["cuda", "cpu"]
+    assert embedder.device == "cuda"  # the GPU keeps doing the rest
+
+
+def test_the_cpu_model_for_nan_vectors_is_loaded_once(monkeypatch):
+    models = FakeModels(monkeypatch, nan_on={"cuda": {"bad"}})
+    embedder = Embedder()
+    embedder.encode(["bad"])
+    embedder.encode(["bad"])
+    assert models.devices == ["cuda", "cpu"]
+
+
+def test_a_vector_that_is_nan_on_the_cpu_too_is_a_clear_error(monkeypatch):
+    FakeModels(monkeypatch, gpu=False, nan_on={"cpu": {"bad"}})
+    with pytest.raises(ValueError, match="not a number"):
+        Embedder().encode(["good", "bad"])

@@ -1,0 +1,25 @@
+{
+  "about": "20 questions for comparing retrieval modes. Each names the article(s) that answer it. 'name' questions hinge on a proper name or rare term; 'paraphrase' questions describe the article in other words, avoiding its title words where possible. Written 11/2026 from the articles themselves, before any mode was run on them.",
+  "questions": [
+    {"id": 1, "kind": "name", "question": "Qwen 2.5 7B on an RTX 3050 for code editing", "gold": [{"source": "hn", "source_id": "50424780"}]},
+    {"id": 2, "kind": "name", "question": "What is FiLSim?", "gold": [{"source": "arxiv", "source_id": "2611.09805"}]},
+    {"id": 3, "kind": "name", "question": "What does the Sheaf-MPNN library do?", "gold": [{"source": "arxiv", "source_id": "2611.04670"}]},
+    {"id": 4, "kind": "name", "question": "How does D-REAL train the drafter?", "gold": [{"source": "arxiv", "source_id": "2611.10432"}]},
+    {"id": 5, "kind": "name", "question": "What is Texpresso?", "gold": [{"source": "hn", "source_id": "50434612"}]},
+    {"id": 6, "kind": "name", "question": "Is Anarlog an alternative to Granola?", "gold": [{"source": "hn", "source_id": "50429295"}]},
+    {"id": 7, "kind": "name", "question": "Which games does OpenConche run?", "gold": [{"source": "hn", "source_id": "50422427"}]},
+    {"id": 8, "kind": "paraphrase", "question": "Does a lower language-modelling loss mean a model reads a low-resource Central Asian language better?", "gold": [{"source": "arxiv", "source_id": "2611.06062"}]},
+    {"id": 9, "kind": "paraphrase", "question": "How can prediction sets keep their coverage guarantee when deploying the model changes the data distribution?", "gold": [{"source": "arxiv", "source_id": "2611.05277"}]},
+    {"id": 10, "kind": "paraphrase", "question": "How do low-rank adapter updates differ between supervised fine-tuning and reinforcement learning?", "gold": [{"source": "arxiv", "source_id": "2611.08414"}]},
+    {"id": 11, "kind": "paraphrase", "question": "What ethical problems come from studying the source files that a preprint server publishes?", "gold": [{"source": "arxiv", "source_id": "2611.12271"}]},
+    {"id": 12, "kind": "paraphrase", "question": "How do you find the right answer when several correlated LLM agents disagree, without labels?", "gold": [{"source": "arxiv", "source_id": "2611.04805"}]},
+    {"id": 13, "kind": "paraphrase", "question": "Why does the US Air Force want mobile concrete printers at its Middle East bases?", "gold": [{"source": "hn", "source_id": "50416440"}]},
+    {"id": 14, "kind": "paraphrase", "question": "Was there a GitHub outage affecting pull requests and git operations?", "gold": [{"source": "hn", "source_id": "50363378"}]},
+    {"id": 15, "kind": "paraphrase", "question": "Is there a plant-based lining for disposable coffee cups that avoids microplastics?", "gold": [{"source": "hn", "source_id": "50426211"}]},
+    {"id": 16, "kind": "paraphrase", "question": "When a customer downgrades their subscription, how do I keep scheduled jobs from using the old limits?", "gold": [{"source": "devto", "source_id": "4941737"}]},
+    {"id": 17, "kind": "paraphrase", "question": "What free photo editors can replace a paid RAW editing subscription?", "gold": [{"source": "devto", "source_id": "5008549"}]},
+    {"id": 18, "kind": "paraphrase", "question": "I was billed for an embedding call but the request failed on a database write. How should logging handle that?", "gold": [{"source": "devto", "source_id": "4982034"}]},
+    {"id": 19, "kind": "paraphrase", "question": "Which big tech company acquired a startup that runs several AI coding agents in parallel workspaces?", "gold": [{"source": "devto", "source_id": "4986500"}]},
+    {"id": 20, "kind": "paraphrase", "question": "My thumbnail upload service gets 429s from object storage. How do I add backpressure?", "gold": [{"source": "devto", "source_id": "4996907"}]}
+  ]
+}

@@ -33,7 +33,7 @@ services:
     environment:
       DATABASE_URL: postgresql://techpulse:${POSTGRES_PASSWORD}@postgres:5432/techpulse
       CONTACT_EMAIL: ${CONTACT_EMAIL:?set CONTACT_EMAIL in .env}
-    mem_limit: 128m
+    mem_limit: 256m  # page text extraction (lxml) needs more than polling alone
 
   tests:
     profiles: ["test"]

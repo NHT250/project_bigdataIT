@@ -8,7 +8,7 @@ from .store import Article
 
 BASE_URL = "https://hacker-news.firebaseio.com/v0"
 LISTS = ("topstories", "newstories")
-WORKERS = 8
+WORKERS = 2  # parallel item requests; kept low to keep the machine light
 MAX_ITEM_FAILURES = 50
 ITEM_ATTEMPTS = 2
 

@@ -7,6 +7,8 @@ const list = document.getElementById("feed");
 const statusLine = document.getElementById("status");
 const filterButtons = [...document.querySelectorAll(".filter button")];
 
+const STORAGE_KEY = "feed-source";
+
 let source = "all";
 let seen = null;
 let latestRequest = 0;
@@ -21,11 +23,27 @@ function renderFeed(articles) {
     return node;
   });
   list.replaceChildren(...nodes);
+  list.removeAttribute("aria-busy");
   seen = new Set(keys);
-  // Fade the highlight once the new rows are on screen.
+  // Fade the highlight back to the card colour once the new rows are on screen.
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    setTimeout(() => list.querySelectorAll(".is-new").forEach((node) => { node.style.backgroundColor = "transparent"; }), 3000);
+    setTimeout(() => list.querySelectorAll(".is-new").forEach((node) => node.classList.remove("is-new")), 3000);
   }));
+}
+
+// How many articles each filter holds, so the With content count shows how far
+// the collector has got with Hacker News story bodies.
+function renderCounts(counts) {
+  if (!counts) return;
+  filterButtons.forEach((button) => {
+    const count = counts[button.dataset.source];
+    button.querySelector(".count").textContent = Number.isInteger(count) ? `(${count.toLocaleString("en-US")})` : "";
+  });
+}
+
+function showLoading() {
+  list.setAttribute("aria-busy", "true");
+  list.replaceChildren(...skeletonCards(4));
 }
 
 function cssVar(name) {
@@ -41,6 +59,7 @@ function renderTable(days) {
     el("td", { textContent: dayLabel(day.day) }),
     el("td", { textContent: day.arxiv }),
     el("td", { textContent: day.hn }),
+    el("td", { textContent: day.devto ?? 0 }),
   )));
 }
 
@@ -70,10 +89,12 @@ function renderChart(days) {
   const labels = days.map((day) => dayLabel(day.day));
   const arxiv = days.map((day) => day.arxiv);
   const hn = days.map((day) => day.hn);
+  const devto = days.map((day) => day.devto ?? 0);
   if (chart) {
     chart.data.labels = labels;
     chart.data.datasets[0].data = arxiv;
     chart.data.datasets[1].data = hn;
+    chart.data.datasets[2].data = devto;
     chart.update("none");
     return;
   }
@@ -81,7 +102,8 @@ function renderChart(days) {
   const soft = cssVar("--ink-soft");
   chart = new Chart(document.getElementById("pulse"), {
     type: "bar",
-    data: { labels, datasets: [series("arXiv", arxiv, cssVar("--arxiv"), page), series("Hacker News", hn, cssVar("--hn"), page)] },
+    data: { labels, datasets: [series("arXiv", arxiv, cssVar("--arxiv"), page), series("Hacker News", hn, cssVar("--hn"), page),
+      series("Dev.to", devto, cssVar("--devto"), page)] },
     options: {
       animation: false,
       maintainAspectRatio: false,
@@ -104,24 +126,47 @@ async function refresh() {
     ]);
     if (request !== latestRequest) return; // A newer filter choice has taken over.
     renderFeed(feed.articles);
+    renderCounts(stats.counts);
     renderTable(stats.days);
     renderChart(stats.days);
     statusLine.classList.remove("is-error");
     statusLine.textContent = `${stats.total_articles.toLocaleString("en-US")} articles collected. Updated ${new Date().toLocaleTimeString("en-GB")}`;
   } catch {
     if (request !== latestRequest) return;
+    if (list.hasAttribute("aria-busy")) {
+      list.replaceChildren(); // Placeholders would suggest articles are on the way.
+      list.removeAttribute("aria-busy");
+    }
     statusLine.classList.add("is-error");
     statusLine.textContent = "Can't reach the server. Trying again in 10 seconds.";
   }
 }
 
+function selectSource(choice) {
+  source = choice;
+  filterButtons.forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.source === choice)));
+}
+
 filterButtons.forEach((button) => button.addEventListener("click", () => {
-  source = button.dataset.source;
+  selectSource(button.dataset.source);
+  save(STORAGE_KEY, source);
   seen = null; // A different list isn't "new" articles.
-  filterButtons.forEach((other) => other.setAttribute("aria-pressed", String(other === button)));
+  showLoading();
   refresh();
 }));
 
+// Chart.js paints with the colours it was given, so a theme switch redraws it.
+document.addEventListener("themechange", () => {
+  if (!chart) return;
+  chart.destroy();
+  chart = null;
+  if (latestDays) renderChart(latestDays);
+});
+
+const savedSource = loadSaved(STORAGE_KEY, "all");
+if (filterButtons.some((button) => button.dataset.source === savedSource)) selectSource(savedSource);
+
 loadChartLibrary(CHART_LIBRARY_URLS);
+showLoading();
 refresh();
 setInterval(() => { if (!document.hidden) refresh(); }, POLL_MS);
